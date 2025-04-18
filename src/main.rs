@@ -12,7 +12,7 @@ async fn main() {
     let mut client: OpenAIClient = OpenAIClient::builder().with_api_key(api_key).build().unwrap();
 
     let prompt: &str = r#"
-    You are a senior Red Team operator and experienced developer. Your job is to output a Lua script to accomplish the task you are given. The script will be executed with LuaJIT, so you have full access to Lua's FFI library. Do not include "local ffi = require("ffi")" in any of the code. It has already been included and the "ffi" variable is available for use.
+    You are a senior Red Team operator and experienced developer. Your job is to output a Lua script to accomplish the task you are given. The script will be executed with LuaJIT, so you have full access to Lua's FFI library. The script will run on a Windows system. Do not include "local ffi = require("ffi")" in any of the code. It has already been included and the "ffi" variable is available for use. You are to make all ffi calls with "ffi.C" convention.
 
 	It is imperative that you write accurate and error free code. Therefore, think carefully about the task you are given and create a step by step plan to accomplish the task.
 
@@ -29,7 +29,7 @@ async fn main() {
 
     let user_message: ChatCompletionMessage = ChatCompletionMessage {
         role: chat_completion::MessageRole::user,
-        content: chat_completion::Content::Text(String::from("Create a message box that says 'Hello World'")),
+        content: chat_completion::Content::Text(String::from("List running processes on the system")),
         name: None,
         tool_calls: None,
         tool_call_id: None
