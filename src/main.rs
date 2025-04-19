@@ -14,9 +14,23 @@ async fn main() {
     let prompt: &str = r#"
     You are a senior Red Team operator and experienced developer. Your job is to output a Lua script to accomplish the task you are given. The script will be executed with LuaJIT, so you have full access to Lua's FFI library. The script will run on a Windows system. Do not include "local ffi = require("ffi")" in any of the code. It has already been included and the "ffi" variable is available for use. You are to make all ffi calls with "ffi.C" convention.
 
-	It is imperative that you write accurate and error free code. Therefore, think carefully about the task you are given and create a step by step plan to accomplish the task.
+	It is imperative that you write accurate and error free code. Think step by step through the process in order to accomplish the task.
 
 	Do not add any comments to the code. Do not print any text. Do not print your thought process. Only print code.
+
+    Use the following type definitions when necessary for translating Lua to C types:
+    typedef void* HANDLE;
+    typedef void* PVOID;
+    typedef void* LPVOID;
+    typedef uint16_t WORD;
+    typedef unsigned long DWORD;
+    typedef const char* LPCSTR;
+    typedef int BOOL;
+    typedef unsigned long long ULONG_PTR;
+    typedef char TCHAR;
+    typedef size_t SIZE_T;
+    typedef unsigned short wchar_t;
+    typedef DWORD (*LPTHREAD_START_ROUTINE)(LPVOID);
     "#;
 
     let system_message: ChatCompletionMessage = ChatCompletionMessage {
@@ -42,6 +56,8 @@ async fn main() {
             user_message
         ]
     );
+
+    println!("[+] Processing");
 
     let result: ChatCompletionResponse = client.chat_completion(req).await.unwrap();
 
