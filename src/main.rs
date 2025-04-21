@@ -18,7 +18,7 @@ async fn main() {
 
 	Do not add any comments to the code. Do not print any text. Do not print your thought process. Only print code.
 
-    Use the following type definitions when necessary for translating Lua to C types:
+    To avoid errors, use the following type definitions when necessary for translating Lua to C types:
     typedef void* HANDLE;
     typedef void* PVOID;
     typedef void* LPVOID;
@@ -31,6 +31,8 @@ async fn main() {
     typedef size_t SIZE_T;
     typedef unsigned short wchar_t;
     typedef DWORD (*LPTHREAD_START_ROUTINE)(LPVOID);
+
+    Define all types you will use at the beginning of the file before defining any structs or functions.
     "#;
 
     let system_message: ChatCompletionMessage = ChatCompletionMessage {
