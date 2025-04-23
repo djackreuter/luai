@@ -39,8 +39,9 @@ async fn ai_gen_lua(instruction: &String, mut attempts: i32) -> String {
         Ok(r) => {
             return String::from(r);
         },
-        Err(_e) => {
+        Err(e) => {
             if attempts < 3 {
+                println!("Error: {e}");
                 println!("Error encountered. Retrying {attempts}/3");
                 attempts += 1;
                 return Box::pin(ai_gen_lua(instruction, attempts)).await;
@@ -67,6 +68,7 @@ async fn ai_execute(instruction: &String) -> Result<String, Box<dyn Error>> {
     typedef void* PVOID;
     typedef void* LPVOID;
     typedef uint16_t WORD;
+    typedef long LONG;
     typedef unsigned long DWORD;
     typedef const char* LPCSTR;
     typedef int BOOL;
@@ -97,7 +99,7 @@ async fn ai_execute(instruction: &String) -> Result<String, Box<dyn Error>> {
     };
     
     let req: ChatCompletionRequest = ChatCompletionRequest::new(
-        String::from("o3-mini"),
+        String::from("gpt-4.1-2025-04-14"),
         vec![
             system_message,
             user_message
