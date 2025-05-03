@@ -72,9 +72,9 @@ async fn ai_gen_lua(instruction: &String, mut attempts: i32) -> String {
 }
 
 async fn ai_execute(instruction: &String) -> Result<String, Box<dyn Error>> {
-    let api_key: String = dotenvy::var("OPENAI_API_KEY").unwrap();
+    let api_key: String = dotenvy::var("XAI_API_KEY").unwrap();
 
-    let mut client: OpenAIClient = OpenAIClient::builder().with_api_key(api_key).build().unwrap();
+    let mut client: OpenAIClient = OpenAIClient::builder().with_endpoint("https://api.x.ai/v1").with_api_key(api_key).build().unwrap();
 
     let prompt: &str = r#"
 You are a senior Red Team operator and expert Lua developer. Your task is to output a Lua script to accomplish the given objective, designed to run with LuaJIT on a Windows system. The script uses Lua's Foreign Function Interface (FFI) with the `ffi` variable already available (do not include `local ffi = require("ffi")`). All FFI calls must use the `ffi.C` convention (e.g., `ffi.C.CreateFileA`).
@@ -158,7 +158,7 @@ The script must execute without errors, with all types defined before use, and p
     };
     
     let req: ChatCompletionRequest = ChatCompletionRequest::new(
-        String::from("gpt-4.1-2025-04-14"),
+        String::from("grok-3-beta"),
         vec![
             system_message,
             user_message
