@@ -3,6 +3,7 @@
 [Blog post](https://blog.shellntel.com/p/luai-an-ai-malware-agent)
 
 ## Usage
+Setup the web interface [luai_web](https://github.com/djackreuter/luai_web).<br>
 Copy `.env.example` to `.env` and update the values.
 ```
 OPENAI_API_KEY=""
