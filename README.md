@@ -2,6 +2,9 @@
 
 [Blog post](https://blog.shellntel.com/p/luai-an-ai-malware-agent)
 
+![image](https://github.com/user-attachments/assets/21bcad3d-cb1c-4eeb-b08a-fd8850077c42)
+
+
 ## Usage
 Setup the web interface [luai_web](https://github.com/djackreuter/luai_web).<br>
 Copy `.env.example` to `.env` and update the values.
