@@ -69,7 +69,7 @@ async fn ai_gen_lua(instruction: &String, mut attempts: i32) -> String {
                 attempts += 1;
                 return Box::pin(ai_gen_lua(instruction, attempts)).await;
             } 
-            return String::from("Fatal error generating Lua");
+            return format!("Fatal error generating Lua: {:?}", e.to_string());
         }
     }
 }
@@ -118,7 +118,6 @@ typedef uintptr_t UINT_PTR;
 
 Rules for execution:
 
-- All FFI function calls must use the `ffi.C` syntax (e.g., `ffi.C.CreateFileA`).
 - The script must be 100% syntactically correct, semantically valid LuaJIT code.
 - The final output must be stored in a string variable called `result`, and the script must end with `return result`.
 - The script must execute without errors and must be self-contained.
