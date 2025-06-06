@@ -1,5 +1,7 @@
 # luai
 
+[Blog post](https://blog.shellntel.com/p/luai-an-ai-malware-agent)
+
 ## Usage
 Copy `.env.example` to `.env` and update the values.
 ```
